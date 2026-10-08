@@ -1,4 +1,5 @@
 import AcidAnalysis from "../components/acidAnalysis/AcidAnalysis";
+import DmWaterSystem from "../components/dmWaterSystem/DmWaterSystem";
 import FlushingSystemTable from "../components/flushingSystemTable/FlushingSystemTable";
 import Navbar from "../components/navbar/Navbar";
 import WaterMetrics from "../components/waterMetrics/WaterMetrics";
@@ -9,6 +10,7 @@ function Home() {
       <Navbar />
       <AcidAnalysis />
       <WaterMetrics />
+      <DmWaterSystem />
       <FlushingSystemTable />
     </div>
   );
