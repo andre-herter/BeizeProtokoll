@@ -75,8 +75,8 @@ export default function AcidAnalysis() {
   return (
     <section className="w-full mb-6 bg-white text-slate-800 rounded-xl shadow-md border border-slate-200 p-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-slate-200 pb-4">
-        <div className="flex items-center justify-between bg-[#2c3e50] text-white p-4 rounded-xl shadow-sm">
-          <h3 className="text-xl font-semibold tracking-wide text-white">
+        <div className="w-full flex items-center justify-between gap-2 bg-[#2c3e50] text-white p-3 sm:p-4 rounded-xl shadow-sm">
+          <h3 className="text-sm sm:text-lg font-semibold tracking-wide text-white truncate">
             Säureanalyse
           </h3>
 
@@ -85,10 +85,8 @@ export default function AcidAnalysis() {
             id="time_beizbad"
             name="time_beizbad"
             value={time}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setTime(e.target.value)
-            }
-            className="px-3 py-1.5 bg-white border border-slate-300 rounded-md text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer"
+            onChange={(e) => setTime(e.target.value)}
+            className="shrink-0 px-2 sm:px-3 py-1 sm:py-1.5 bg-white border border-slate-300 rounded-md text-slate-900 text-xs sm:text-base focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer"
           />
         </div>
       </div>
