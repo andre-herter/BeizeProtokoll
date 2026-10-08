@@ -24,7 +24,7 @@ export default function WaterMetrics() {
   }, [koValue]);
 
   return (
-    <section className=" w-full bg-white text-slate-800 rounded-xl shadow-md border border-slate-200 p-6">
+    <section className=" w-full mb-6 bg-white text-slate-800 rounded-xl shadow-md border border-slate-200 p-6">
       <div className="w-full flex items-center justify-between gap-2 bg-gray-400 text-white p-3 sm:p-4 rounded-xl shadow-sm">
         <h3 className="text-sm sm:text-lg font-semibold tracking-wide text-white truncate">
           Wasserwerte Hüttenflur

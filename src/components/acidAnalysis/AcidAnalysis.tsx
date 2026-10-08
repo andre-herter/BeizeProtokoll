@@ -74,7 +74,7 @@ export default function AcidAnalysis() {
 
   return (
     <section className="w-full mb-6 bg-white text-slate-800 rounded-xl shadow-md border border-slate-200 p-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-slate-200 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="w-full flex items-center justify-between gap-2 bg-[#2c3e50] text-white p-3 sm:p-4 rounded-xl shadow-sm">
           <h3 className="text-sm sm:text-lg font-semibold tracking-wide text-white truncate">
             Säureanalyse
