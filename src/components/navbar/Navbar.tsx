@@ -1,8 +1,10 @@
+import { Link } from "react-router-dom";
+
 export default function Navbar() {
   return (
     <nav className="mb-5 rounded-xl flex items-center justify-between gap-6 bg-slate-900 p-4 shadow-md">
-      <a
-        href="#"
+      <Link
+        to="/delivery"
         aria-label="Tankwagen HCI Anlieferung"
         className="text-slate-300 hover:text-white transition-colors duration-200"
       >
@@ -24,10 +26,10 @@ export default function Navbar() {
           <circle cx="6" cy="18" r="2.5"></circle>
           <circle cx="18" cy="18" r="2.5"></circle>
         </svg>
-      </a>
+      </Link>
 
-      <a
-        href="#"
+      <Link
+        to="/notes"
         aria-label="Notizen"
         className="text-slate-300 hover:text-white transition-colors duration-200"
       >
@@ -48,7 +50,7 @@ export default function Navbar() {
           <line x1="7" y1="14" x2="17" y2="14"></line>
           <line x1="7" y1="18" x2="13" y2="18"></line>
         </svg>
-      </a>
+      </Link>
     </nav>
   );
 }
