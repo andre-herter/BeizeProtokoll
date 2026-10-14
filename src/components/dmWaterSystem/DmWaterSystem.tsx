@@ -58,7 +58,7 @@ export default function DmWaterSystem({
   };
 
   return (
-    <section className="w-full mt-6 bg-white text-slate-800 rounded-xl shadow-md border border-slate-200 p-4">
+    <section className="w-full mb-6 bg-white text-slate-800 rounded-xl shadow-md border border-slate-200 p-4">
       <div className="w-full mb-2 flex items-center justify-between gap-2 bg-[#8e44ad] text-white p-2 sm:p-2.5 rounded-lg shadow-sm">
         <h3 className="text-xs sm:text-sm font-semibold tracking-wide truncate">
           VE-Anlage

@@ -181,7 +181,6 @@ export default function FlushingSystemTable({
   onFormChange,
   storageKey = "flushing_system_table_data",
 }: FlushingSystemTableProps) {
-  // 1. Initialisierung mit Werten aus LocalStorage (falls vorhanden)
   const [time, setTime] = useState<string>(() => {
     if (typeof window === "undefined") return initialTime;
     try {

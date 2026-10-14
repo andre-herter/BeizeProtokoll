@@ -59,7 +59,7 @@ export default function FinalWastewaterInspection({
   };
 
   return (
-    <section className="mx-auto max-w-4xl rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="mx-auto mb-6 max-w-4xl rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="w-full mb-4 flex items-center justify-between gap-2 bg-[#d35400] text-white p-2 sm:p-2.5 rounded-lg shadow-sm">
         <h3 className="text-xs sm:text-sm font-semibold tracking-wide truncate">
           Endkontrolle &amp; Zähler

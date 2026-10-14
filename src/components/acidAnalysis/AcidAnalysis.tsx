@@ -5,31 +5,34 @@ import type {
   MetricField,
 } from "./AcidAnalysis.types";
 
-// Keys für den localStorage definieren
-const STORAGE_KEY_DATA = "acid_analysis_data";
-const STORAGE_KEY_TIME = "acid_analysis_time";
+const STORAGE_KEY_COMBINED = "acid_analysis_combined_data";
 
-const INITIAL_DATA: AcidAnalysisData = {
-  bath1: { disp_hcl: "", disp_fe: "", meas_hcl: "", meas_fe: "" },
-  bath3: { disp_hcl: "", disp_fe: "", meas_hcl: "", meas_fe: "" },
+interface AcidAnalysisState {
+  time: string;
+  data: AcidAnalysisData;
+}
+
+const INITIAL_STATE: AcidAnalysisState = {
+  time: "",
+  data: {
+    bath1: { disp_hcl: "", disp_fe: "", meas_hcl: "", meas_fe: "" },
+    bath3: { disp_hcl: "", disp_fe: "", meas_hcl: "", meas_fe: "" },
+  },
 };
 
 export default function AcidAnalysis() {
-  // 1. State für Uhrzeit: Lädt gespeicherten Wert oder startet leer
-  const [time, setTime] = useState<string>(() => {
+  const [state, setState] = useState<AcidAnalysisState>(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem(STORAGE_KEY_TIME) || "";
-    }
-    return "";
-  });
-
-  // 2. State für Tabellendaten: Lädt gespeichertes JSON oder nutzt Standardwerte
-  const [data, setData] = useState<AcidAnalysisData>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(STORAGE_KEY_DATA);
+      const saved = localStorage.getItem(STORAGE_KEY_COMBINED);
       if (saved) {
         try {
-          return JSON.parse(saved) as AcidAnalysisData;
+          const parsed = JSON.parse(saved);
+          if (typeof parsed === "object" && parsed !== null) {
+            return {
+              time: parsed.time || "",
+              data: parsed.data || INITIAL_STATE.data,
+            };
+          }
         } catch (error) {
           console.error(
             "Fehler beim Laden der Säureanalyse-Daten aus dem localStorage:",
@@ -38,29 +41,30 @@ export default function AcidAnalysis() {
         }
       }
     }
-    return INITIAL_DATA;
+    return INITIAL_STATE;
   });
 
-  // 3. Effect: Speichert die Uhrzeit automatisch bei jeder Änderung
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_TIME, time);
-  }, [time]);
+    localStorage.setItem(STORAGE_KEY_COMBINED, JSON.stringify(state));
+  }, [state]);
 
-  // 4. Effect: Speichert das Daten-Objekt automatisch bei jeder Änderung
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(data));
-  }, [data]);
+  const handleTimeChange = (newTime: string): void => {
+    setState((prev) => ({ ...prev, time: newTime }));
+  };
 
   const handleInputChange = (
     bath: BathId,
     field: MetricField,
     value: string,
   ): void => {
-    setData((prev) => ({
+    setState((prev) => ({
       ...prev,
-      [bath]: {
-        ...prev[bath],
-        [field]: value,
+      data: {
+        ...prev.data,
+        [bath]: {
+          ...prev.data[bath],
+          [field]: value,
+        },
       },
     }));
   };
@@ -84,8 +88,8 @@ export default function AcidAnalysis() {
             type="time"
             id="time_beizbad"
             name="time_beizbad"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
+            value={state.time}
+            onChange={(e) => handleTimeChange(e.target.value)}
             className="shrink-0 px-2 sm:px-3 py-1 sm:py-1.5 bg-white border border-slate-300 rounded-md text-slate-900 text-xs sm:text-base focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer"
           />
         </div>
@@ -153,7 +157,7 @@ export default function AcidAnalysis() {
                         placeholder="-"
                         id={inputId}
                         name={inputId}
-                        value={data[row.id][field]}
+                        value={state.data[row.id][field]}
                         onChange={(e: ChangeEvent<HTMLInputElement>) =>
                           handleInputChange(row.id, field, e.target.value)
                         }
