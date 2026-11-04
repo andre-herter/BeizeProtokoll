@@ -1,4 +1,4 @@
-import React, { useState, useEffect, type ChangeEvent } from "react";
+import React, { type ChangeEvent } from "react";
 import type {
   FlushingSystemFormData,
   FlushingSystemRowConfig,
@@ -7,10 +7,25 @@ import type {
   FlushingSystemInputProps,
 } from "./FlushingSystemTable.types";
 
+interface ExtendedFlushingSystemTableProps extends FlushingSystemTableProps {
+  readOnly?: boolean;
+  time?: string;
+  data?: FlushingSystemFormData;
+  initialTime?: string;
+  initialData?: FlushingSystemFormData;
+  onTimeChange?: (newTime: string) => void;
+  onInputChange?: (
+    systemId: string,
+    field: keyof FlushingSystemRowData,
+    value: string,
+    index?: number,
+  ) => void;
+}
+
 const FLUSHING_SYSTEM_ROWS: FlushingSystemRowConfig[] = [
   {
     id: "sp1",
-    label: "Spüle 1",
+    label: "1",
     placeholderEc: "mS/cm",
     inputCountDisplayEc: 2,
     disabledFields: ["display_ph"],
@@ -18,24 +33,24 @@ const FLUSHING_SYSTEM_ROWS: FlushingSystemRowConfig[] = [
   },
   {
     id: "sp2",
-    label: "Spüle 2",
+    label: "2",
     disabledFields: ["display_ec", "display_ph"],
   },
   {
     id: "sp3",
-    label: "Spüle 3",
+    label: "3",
     disabledFields: ["display_ec", "display_ph"],
   },
   {
     id: "sp4",
-    label: "Spüle 4",
+    label: "4",
     inputCountDisplayPh: 2,
     disabledFields: ["display_ec"],
     tolerancePh: 0.5,
   },
   {
     id: "sp5",
-    label: "Spüle 5",
+    label: "5",
     placeholderEc: "µS/cm",
     inputCountDisplayEc: 2,
     disabledFields: ["display_ph"],
@@ -90,41 +105,6 @@ const calculateTolerance = (
   }
 };
 
-const createInitialFormData = (): FlushingSystemFormData =>
-  FLUSHING_SYSTEM_ROWS.reduce((acc, row) => {
-    acc[row.id] = {
-      display_ec: row.inputCountDisplayEc
-        ? Array(row.inputCountDisplayEc).fill("")
-        : "",
-      sample_ec: "",
-      display_ph: row.inputCountDisplayPh
-        ? Array(row.inputCountDisplayPh).fill("")
-        : "",
-      sample_ph: "",
-    };
-    return acc;
-  }, {} as FlushingSystemFormData);
-
-const mergeInitialFormData = (
-  initialData?: Partial<Record<string, Partial<FlushingSystemRowData>>>,
-): FlushingSystemFormData => {
-  const baseData = createInitialFormData();
-  if (!initialData) return baseData;
-
-  const mergedData: FlushingSystemFormData = { ...baseData };
-
-  Object.keys(initialData).forEach((key) => {
-    if (mergedData[key]) {
-      mergedData[key] = {
-        ...mergedData[key],
-        ...initialData[key],
-      };
-    }
-  });
-
-  return mergedData;
-};
-
 const FlushingSystemInput: React.FC<FlushingSystemInputProps> = ({
   id,
   value,
@@ -152,8 +132,8 @@ const FlushingSystemInput: React.FC<FlushingSystemInputProps> = ({
       {isDisabled ? (
         <input
           type="text"
-          id={id}
-          name={id}
+          id={`${id}_disabled`}
+          name={`${id}_disabled`}
           value="X"
           disabled
           className="w-full py-1 bg-slate-100 border border-slate-200 rounded text-center text-slate-400 font-medium cursor-not-allowed select-none text-xs sm:text-sm"
@@ -176,83 +156,44 @@ const FlushingSystemInput: React.FC<FlushingSystemInputProps> = ({
 };
 
 export default function FlushingSystemTable({
+  time,
   initialTime = "",
-  initialData,
-  onFormChange,
-  storageKey = "flushing_system_table_data",
-}: FlushingSystemTableProps) {
-  const [time, setTime] = useState<string>(() => {
-    if (typeof window === "undefined") return initialTime;
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed?.time !== undefined) return parsed.time;
-      }
-    } catch (e) {
-      console.error("Fehler beim Laden von 'time' aus LocalStorage:", e);
-    }
-    return initialTime;
-  });
-
-  const [formData, setFormData] = useState<FlushingSystemFormData>(() => {
-    const baseMerged = mergeInitialFormData(initialData);
-    if (typeof window === "undefined") return baseMerged;
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed?.formData) {
-          return { ...baseMerged, ...parsed.formData };
-        }
-      }
-    } catch (e) {
-      console.error("Fehler beim Laden von 'formData' aus LocalStorage:", e);
-    }
-    return baseMerged;
-  });
-
-  // 2. Automatisches Speichern im LocalStorage bei jeder Änderung
-  useEffect(() => {
-    try {
-      const payload = { time, formData };
-      localStorage.setItem(storageKey, JSON.stringify(payload));
-    } catch (e) {
-      console.error("Fehler beim Speichern in LocalStorage:", e);
-    }
-  }, [time, formData, storageKey]);
+  data,
+  initialData = {},
+  onTimeChange,
+  onInputChange,
+  readOnly = false,
+}: ExtendedFlushingSystemTableProps) {
+  const currentTime = time !== undefined ? time : initialTime;
+  const currentData = data !== undefined ? data : initialData;
 
   const handleTimeChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const newTime = e.target.value;
-    setTime(newTime);
-    onFormChange?.(newTime, formData);
+    onTimeChange?.(e.target.value);
   };
 
-  const handleInputChange = (
-    systemId: string,
-    field: keyof FlushingSystemRowData,
-    value: string,
-    index?: number,
-  ) => {
-    const currentRow = formData[systemId];
-    let updatedFieldValue: string | string[] = value;
-
-    if (typeof index === "number" && Array.isArray(currentRow[field])) {
-      const updatedArray = [...(currentRow[field] as string[])];
-      updatedArray[index] = value;
-      updatedFieldValue = updatedArray;
+  const renderReadOnlyValue = (val: string | string[], isX = false) => {
+    if (isX) return "X";
+    if (Array.isArray(val)) {
+      const filtered = val.filter((v) => v !== "");
+      return filtered.length > 0 ? filtered.join(" / ") : "-";
     }
+    return val || "-";
+  };
 
-    const updatedData: FlushingSystemFormData = {
-      ...formData,
-      [systemId]: {
-        ...currentRow,
-        [field]: updatedFieldValue,
-      },
-    };
-
-    setFormData(updatedData);
-    onFormChange?.(time, updatedData);
+  // Hilfsfunktion für die Styling-Klassen im Read-Only-Modus basierend auf dem Status
+  const getReadOnlyStatusClasses = (
+    status: "ok" | "error" | "neutral",
+    isX = false,
+  ) => {
+    if (isX)
+      return "font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded block text-center";
+    if (status === "ok") {
+      return "font-semibold text-green-900 bg-green-100 border border-green-400 px-2 py-0.5 rounded block text-center";
+    }
+    if (status === "error") {
+      return "font-semibold text-red-900 bg-red-100 border border-red-400 px-2 py-0.5 rounded block text-center";
+    }
+    return "text-slate-700 text-center block";
   };
 
   return (
@@ -262,17 +203,23 @@ export default function FlushingSystemTable({
           Spülteil: Leitwerte, pH - Werte
         </h3>
 
-        <input
-          type="time"
-          id="time_flushing"
-          name="time_flushing"
-          value={time}
-          onChange={handleTimeChange}
-          className="px-2.5 py-1 bg-slate-50 border border-slate-300 rounded-md text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer text-xs sm:text-sm font-medium"
-        />
+        {readOnly ? (
+          <div className="shrink-0 px-3 py-1 bg-white/10 border border-white/20 rounded-md text-white text-xs sm:text-sm font-medium">
+            {currentTime ? `${currentTime} Uhr` : "-"}
+          </div>
+        ) : (
+          <input
+            type="time"
+            id="time_flushing"
+            name="time_flushing"
+            value={currentTime}
+            onChange={handleTimeChange}
+            className="px-2.5 py-1 bg-slate-50 border border-slate-300 rounded-md text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer text-xs sm:text-sm font-medium"
+          />
+        )}
       </div>
 
-      <div className="w-full rounded-lg border border-slate-200 shadow-sm">
+      <div className="w-full rounded-lg border border-slate-200 shadow-sm overflow-x-auto">
         <table className="w-full table-fixed border-collapse text-left text-xs sm:text-sm">
           <thead>
             <tr className="bg-slate-100 border-b border-slate-200 text-slate-700">
@@ -296,7 +243,7 @@ export default function FlushingSystemTable({
 
           <tbody className="divide-y divide-slate-200 bg-white">
             {FLUSHING_SYSTEM_ROWS.map((row) => {
-              const rowState = formData[row.id];
+              const rowState = currentData[row.id];
 
               const ecValidation = calculateTolerance(
                 rowState?.display_ec,
@@ -310,6 +257,13 @@ export default function FlushingSystemTable({
                 row.tolerancePh,
               );
 
+              const isEcDisabled = row.disabledFields?.includes("display_ec");
+              const isSampleEcDisabled =
+                row.disabledFields?.includes("sample_ec");
+              const isPhDisabled = row.disabledFields?.includes("display_ph");
+              const isSamplePhDisabled =
+                row.disabledFields?.includes("sample_ph");
+
               return (
                 <tr
                   key={row.id}
@@ -319,13 +273,25 @@ export default function FlushingSystemTable({
                     {row.label}
                   </td>
 
-                  {/* 1. Anzeige LW */}
-                  <td className="p-1 sm:p-1.5 border-r border-slate-200">
-                    {row.disabledFields?.includes("display_ec") ? (
+                  {/* Anzeige LW */}
+                  <td className="p-1 sm:p-1.5 border-r border-slate-200 text-center text-slate-700">
+                    {readOnly ? (
+                      <span
+                        className={getReadOnlyStatusClasses(
+                          "neutral",
+                          isEcDisabled,
+                        )}
+                      >
+                        {renderReadOnlyValue(
+                          rowState?.display_ec,
+                          isEcDisabled,
+                        )}
+                      </span>
+                    ) : isEcDisabled ? (
                       <input
                         type="text"
-                        id={`${row.id}_anz_lw`}
-                        name={`${row.id}_anz_lw`}
+                        id={`${row.id}_display_ec_disabled`}
+                        name={`${row.id}_display_ec_disabled`}
                         value="X"
                         disabled
                         className="w-full py-1 bg-slate-100 border border-slate-200 rounded text-center text-slate-400 font-medium cursor-not-allowed select-none text-xs sm:text-sm"
@@ -334,71 +300,99 @@ export default function FlushingSystemTable({
                       row.inputCountDisplayEc > 1 ? (
                       <div className="flex gap-1">
                         {Array.from({ length: row.inputCountDisplayEc }).map(
-                          (_, idx) => (
-                            <input
-                              key={idx}
-                              type="number"
-                              step="any"
-                              id={`${row.id}_anz_lw${idx + 1}`}
-                              name={`${row.id}_anz_lw${idx + 1}`}
-                              placeholder={row.placeholderEc ?? "-"}
-                              value={
-                                Array.isArray(rowState?.display_ec)
-                                  ? rowState.display_ec[idx] || ""
-                                  : ""
-                              }
-                              onChange={(e) =>
-                                handleInputChange(
-                                  row.id,
-                                  "display_ec",
-                                  e.target.value,
-                                  idx,
-                                )
-                              }
-                              className="w-1/2 min-w-0 px-0.5 py-1 bg-white border border-slate-300 rounded text-center text-slate-900 font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-xs sm:text-sm shadow-inner placeholder-slate-400"
-                            />
-                          ),
+                          (_, idx) => {
+                            const inputId = `${row.id}_display_ec_${idx}`;
+                            return (
+                              <input
+                                key={idx}
+                                type="number"
+                                step="any"
+                                id={inputId}
+                                name={inputId}
+                                placeholder={row.placeholderEc ?? "-"}
+                                value={
+                                  Array.isArray(rowState?.display_ec)
+                                    ? rowState.display_ec[idx] || ""
+                                    : ""
+                                }
+                                onChange={(e) =>
+                                  onInputChange?.(
+                                    row.id,
+                                    "display_ec",
+                                    e.target.value,
+                                    idx,
+                                  )
+                                }
+                                className="w-1/2 min-w-0 px-0.5 py-1 bg-white border border-slate-300 rounded text-center text-slate-900 font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-xs sm:text-sm shadow-inner placeholder-slate-400"
+                              />
+                            );
+                          },
                         )}
                       </div>
                     ) : (
                       <input
                         type="number"
                         step="any"
-                        id={`${row.id}_anz_lw`}
-                        name={`${row.id}_anz_lw`}
+                        id={`${row.id}_display_ec`}
+                        name={`${row.id}_display_ec`}
                         placeholder={row.placeholderEc ?? "-"}
                         value={(rowState?.display_ec as string) || ""}
                         onChange={(e) =>
-                          handleInputChange(
-                            row.id,
-                            "display_ec",
-                            e.target.value,
-                          )
+                          onInputChange?.(row.id, "display_ec", e.target.value)
                         }
                         className="w-full px-1 py-1 bg-white border border-slate-300 rounded text-center text-slate-900 font-medium focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-xs sm:text-sm shadow-inner placeholder-slate-400"
                       />
                     )}
                   </td>
 
-                  {/* 2. Probe LW */}
-                  <FlushingSystemInput
-                    id={`${row.id}_pr_lw`}
-                    value={(rowState?.sample_ec as string) || ""}
-                    isDisabled={row.disabledFields?.includes("sample_ec")}
-                    validationStatus={ecValidation.status}
-                    validationTitle={ecValidation.title}
-                    onChange={(e) =>
-                      handleInputChange(row.id, "sample_ec", e.target.value)
-                    }
-                  />
+                  {/* Probe LW (mit Toleranz-Status im ReadOnly-Modus) */}
+                  {readOnly ? (
+                    <td className="p-1 sm:p-1.5 border-r border-slate-200 text-center text-slate-700">
+                      <span
+                        className={getReadOnlyStatusClasses(
+                          ecValidation.status,
+                          isSampleEcDisabled,
+                        )}
+                        title={ecValidation.title}
+                      >
+                        {renderReadOnlyValue(
+                          rowState?.sample_ec,
+                          isSampleEcDisabled,
+                        )}
+                      </span>
+                    </td>
+                  ) : (
+                    <FlushingSystemInput
+                      id={`${row.id}_pr_lw`}
+                      value={(rowState?.sample_ec as string) || ""}
+                      isDisabled={isSampleEcDisabled}
+                      validationStatus={ecValidation.status}
+                      validationTitle={ecValidation.title}
+                      onChange={(e) =>
+                        onInputChange?.(row.id, "sample_ec", e.target.value)
+                      }
+                    />
+                  )}
 
-                  {/* 3. Anzeige pH */}
-                  <td className="p-1 sm:p-1.5 border-r border-slate-200">
-                    {row.disabledFields?.includes("display_ph") ? (
+                  {/* Anzeige pH */}
+                  <td className="p-1 sm:p-1.5 border-r border-slate-200 text-center text-slate-700">
+                    {readOnly ? (
+                      <span
+                        className={getReadOnlyStatusClasses(
+                          "neutral",
+                          isPhDisabled,
+                        )}
+                      >
+                        {renderReadOnlyValue(
+                          rowState?.display_ph,
+                          isPhDisabled,
+                        )}
+                      </span>
+                    ) : isPhDisabled ? (
                       <input
                         type="text"
-                        id={`${row.id}_anz_ph`}
-                        name={`${row.id}_anz_ph`}
+                        id={`${row.id}_display_ph_disabled`}
+                        name={`${row.id}_display_ph_disabled`}
                         value="X"
                         disabled
                         className="w-full py-1 bg-slate-100 border border-slate-200 rounded text-center text-slate-400 font-medium cursor-not-allowed select-none text-xs sm:text-sm"
@@ -407,64 +401,80 @@ export default function FlushingSystemTable({
                       row.inputCountDisplayPh > 1 ? (
                       <div className="flex gap-1">
                         {Array.from({ length: row.inputCountDisplayPh }).map(
-                          (_, idx) => (
-                            <input
-                              key={idx}
-                              type="number"
-                              step="any"
-                              id={`${row.id}_anz_ph${idx + 1}`}
-                              name={`${row.id}_anz_ph${idx + 1}`}
-                              placeholder="-"
-                              value={
-                                Array.isArray(rowState?.display_ph)
-                                  ? rowState.display_ph[idx] || ""
-                                  : ""
-                              }
-                              onChange={(e) =>
-                                handleInputChange(
-                                  row.id,
-                                  "display_ph",
-                                  e.target.value,
-                                  idx,
-                                )
-                              }
-                              className="w-1/2 min-w-0 px-0.5 py-1 bg-white border border-slate-300 rounded text-center text-slate-900 font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-xs sm:text-sm shadow-inner placeholder-slate-400"
-                            />
-                          ),
+                          (_, idx) => {
+                            const inputId = `${row.id}_display_ph_${idx}`;
+                            return (
+                              <input
+                                key={idx}
+                                type="number"
+                                step="any"
+                                id={inputId}
+                                name={inputId}
+                                placeholder="-"
+                                value={
+                                  Array.isArray(rowState?.display_ph)
+                                    ? rowState.display_ph[idx] || ""
+                                    : ""
+                                }
+                                onChange={(e) =>
+                                  onInputChange?.(
+                                    row.id,
+                                    "display_ph",
+                                    e.target.value,
+                                    idx,
+                                  )
+                                }
+                                className="w-1/2 min-w-0 px-0.5 py-1 bg-white border border-slate-300 rounded text-center text-slate-900 font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-xs sm:text-sm shadow-inner placeholder-slate-400"
+                              />
+                            );
+                          },
                         )}
                       </div>
                     ) : (
                       <input
                         type="number"
                         step="any"
-                        id={`${row.id}_anz_ph`}
-                        name={`${row.id}_anz_ph`}
+                        id={`${row.id}_display_ph`}
+                        name={`${row.id}_display_ph`}
                         placeholder="-"
                         value={(rowState?.display_ph as string) || ""}
                         onChange={(e) =>
-                          handleInputChange(
-                            row.id,
-                            "display_ph",
-                            e.target.value,
-                          )
+                          onInputChange?.(row.id, "display_ph", e.target.value)
                         }
                         className="w-full px-1 py-1 bg-white border border-slate-300 rounded text-center text-slate-900 font-medium focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-xs sm:text-sm shadow-inner placeholder-slate-400"
                       />
                     )}
                   </td>
 
-                  {/* 4. Probe pH */}
-                  <FlushingSystemInput
-                    id={`${row.id}_pr_ph`}
-                    value={(rowState?.sample_ph as string) || ""}
-                    isDisabled={row.disabledFields?.includes("sample_ph")}
-                    validationStatus={phValidation.status}
-                    validationTitle={phValidation.title}
-                    isLastColumn
-                    onChange={(e) =>
-                      handleInputChange(row.id, "sample_ph", e.target.value)
-                    }
-                  />
+                  {/* Probe pH (mit Toleranz-Status im ReadOnly-Modus) */}
+                  {readOnly ? (
+                    <td className="p-1 sm:p-1.5 text-center text-slate-700">
+                      <span
+                        className={getReadOnlyStatusClasses(
+                          phValidation.status,
+                          isSamplePhDisabled,
+                        )}
+                        title={phValidation.title}
+                      >
+                        {renderReadOnlyValue(
+                          rowState?.sample_ph,
+                          isSamplePhDisabled,
+                        )}
+                      </span>
+                    </td>
+                  ) : (
+                    <FlushingSystemInput
+                      id={`${row.id}_pr_ph`}
+                      value={(rowState?.sample_ph as string) || ""}
+                      isDisabled={isSamplePhDisabled}
+                      validationStatus={phValidation.status}
+                      validationTitle={phValidation.title}
+                      isLastColumn
+                      onChange={(e) =>
+                        onInputChange?.(row.id, "sample_ph", e.target.value)
+                      }
+                    />
+                  )}
                 </tr>
               );
             })}

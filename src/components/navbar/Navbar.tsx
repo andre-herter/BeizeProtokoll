@@ -29,6 +29,13 @@ export default function Navbar() {
       </Link>
 
       <Link
+        to={"/archiv"}
+        className="font-bold px-2.5 py-1.25 bg-[#0056b3] text-white rounded transition-colors duration-200 hover:bg-blue-700 no-underline"
+      >
+        📂 Archiv öffnen
+      </Link>
+
+      <Link
         to="/notes"
         aria-label="Notizen"
         className="text-slate-300 hover:text-white transition-colors duration-200"
